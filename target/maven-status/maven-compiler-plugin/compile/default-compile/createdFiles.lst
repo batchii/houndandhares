@@ -1,0 +1,8 @@
+com\hw1app\Player.class
+com\hw1app\Bootstrap.class
+com\hw1app\GameController.class
+com\hw1app\Game.class
+com\hw1app\Piece.class
+com\hw1app\JsonTransformer.class
+com\hw1app\GameService$GameServiceException.class
+com\hw1app\GameService.class
