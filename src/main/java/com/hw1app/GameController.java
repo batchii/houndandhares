@@ -83,62 +83,28 @@ public class GameController {
         post(API_CONTEXT + "/games/:id/turns", "application/json", (request, response) -> {
             JsonParser p = new JsonParser();
             JsonObject req = p.parse(request.body()).getAsJsonObject();
-            gameService.movePiece(req);
 
-            return Collections.EMPTY_MAP;
+            req.addProperty("gameId", request.params(":id"));
+            System.out.println("hi");
+            JsonObject res = gameService.movePiece(req);
+            System.out.println("halp");
+            if(res.has("playerId")){
+                response.status(200);
+                System.out.println("True");
+                return res;
+            } else {
+                String error = res.get("reason").toString();
+                if(error.equals("INVALID_GAME_ID") || error.equals("INVALID_PLAYER_ID")){
+                    response.status(404);
+                    System.out.println("no good");
+                } else if(error.equals("INCORRECT_TURN") || error.equals("ILLEGAL_MOVE")){
+                    response.status(422);
+                    System.out.println("bad");
+                }
+
+                return res;
+            }
         }, new JsonTransformer());
-
-//        //^^ converts a java object to a json object
-//
-//
-//        //Get a specific todo by id
-//        get(API_CONTEXT + "/games/:id/state", "application/json", (request, response) -> {
-//            try {
-//                //Returns a java object
-//                return todoService.find(request.params(":id"));
-//            } catch (TodoService.TodoServiceException ex) {
-//                logger.error(String.format("Failed to find object with id: %s", request.params(":id")));
-//                response.status(500);
-//                return Collections.EMPTY_MAP;
-//            }
-//        }, new JsonTransformer());
-//        //^^ converts a java object to a json object
-//
-//        //Get all todos
-//        get(API_CONTEXT + "/games", "application/json", (request, response)-> {
-//            try {
-//                return todoService.findAll() ;
-//            } catch (TodoService.TodoServiceException ex) {
-//                logger.error("Failed to fetch the list of todos");
-//                response.status(500);
-//                return Collections.EMPTY_MAP;
-//            }
-//        }, new JsonTransformer());
-//
-//
-//        //Add a new todo
-//        put(API_CONTEXT + "/games/:id", "application/json", (request, response) -> {
-//            try {
-//                return todoService.update(request.params(":id"), request.body());
-//            } catch (TodoService.TodoServiceException ex) {
-//                logger.error(String.format("Failed to update todo with id: %s", request.params(":id")));
-//                response.status(500);
-//                return Collections.EMPTY_MAP;
-//            }
-//        }, new JsonTransformer());
-//
-//        //Delete an existing todo
-//        delete(API_CONTEXT + "/todos/:id", "application/json", (request, response) -> {
-//            try {
-//                todoService.delete(request.params(":id"));
-//                response.status(200);
-//            } catch (TodoService.TodoServiceException ex) {
-//                logger.error(String.format("Failed to delete todo with id: %s", request.params(":id")));
-//                response.status(500);
-//            }
-//            return Collections.EMPTY_MAP;
-//        }, new JsonTransformer());
-//    }
     }
 
 

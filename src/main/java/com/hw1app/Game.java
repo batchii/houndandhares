@@ -1,5 +1,8 @@
 package com.hw1app;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+
 /**
  * Created by atab7_000 on 9/8/2015.
  */
@@ -12,10 +15,33 @@ public class Game {
 
     private String currentState;
 
-    public Game(int gameId, Player playerOne){
+    public Graph<Vertex> getBoard() {
+        return board;
+    }
+
+    public HashMap<ArrayList<Piece>, Integer> stalling;
+
+    public HashMap<ArrayList<Piece>, Integer> getStalling() {
+        return stalling;
+    }
+
+    public void setStalling(HashMap<ArrayList<Piece>, Integer> stalling) {
+        this.stalling = stalling;
+    }
+
+    public void setBoard(Graph<Vertex> board) {
+        this.board = board;
+    }
+
+    private Graph<Vertex> board;
+
+
+    public Game(int gameId, Player playerOne, Graph<Vertex> board) {
         this.gameId = gameId;
         this.playerOne = playerOne;
         this.currentState = "WAITING_FOR_SECOND_PLAYER";
+        this.board = board;
+        this.stalling = new HashMap<ArrayList<Piece>, Integer>();
     }
 
     public String getCurrentState() {
@@ -25,7 +51,6 @@ public class Game {
     public void setCurrentState(String currentState) {
         this.currentState = currentState;
     }
-
 
 
     public int getGameId() {
