@@ -1,7 +1,10 @@
 package com.hw1app;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.stream.Collectors;
 
 /**
  * Created by atab7_000 on 9/8/2015.
@@ -27,6 +30,34 @@ public class Game {
 
     public void setStalling(HashMap<ArrayList<Piece>, Integer> stalling) {
         this.stalling = stalling;
+    }
+
+    public ArrayList<Piece> getPieces(){
+        ArrayList<Piece> pieces = new ArrayList<>();
+        Player hound, hare;
+        if(playerOne.getPieceType().equals("HOUND")){
+            hound = playerOne;
+            hare = playerTwo;
+        } else {
+            hound = playerTwo;
+            hare = playerOne;
+        }
+        for(Piece piece : hound.getPieces()){
+            pieces.add(piece);
+        }
+        Collections.sort(pieces, new Comparator<Piece>() {
+
+            public int compare(Piece o1, Piece o2) {
+                if (Integer.compare(o1.getX(), o2.getX()) == 0) {
+                    return Integer.compare(o1.getY(), o2.getY());
+                } else {
+                    return Integer.compare(o1.getX(), o2.getX());
+                }
+            }
+        });
+
+        pieces.addAll(hare.getPieces().stream().collect(Collectors.toList()));
+        return pieces;
     }
 
     public void setBoard(Graph<Vertex> board) {

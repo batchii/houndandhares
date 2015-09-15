@@ -14,15 +14,22 @@ import java.util.*;
 public class GameService {
     private static int gameId = 1;
 
+    /**
+     * Stores the current games
+     */
     private HashMap<Integer, Game> gameHashMap;
 
     private static final Gson gson = new Gson();
 
-    //This is for the database
     public GameService() {
         gameHashMap = new HashMap<Integer, Game>();
     }
 
+    /**
+     *
+     * @param pieceType Player one's piece type
+     * @return the game that gets initialized
+     */
     public Game startNewGame(String pieceType) {
         Player playerOne = new Player("playerOne", pieceType);
         Graph board = Util.makeBoard();
@@ -33,16 +40,17 @@ public class GameService {
     }
 
 
-
     /**
-     * Return game board pieces as a jsonArray
      *
      * @param id - id of the game
-     * @return
+     * @return game board pieces as a jsonArray
      */
-    public JsonArray getGameBoard(String id) {
+    public JsonArray getGameBoard(String id) throws InvalidGameIdException {
         JsonArray gamePiecesList = new JsonArray();
         Game game = gameHashMap.get(Integer.parseInt(id));
+        if (game == null) {
+            throw new InvalidGameIdException("Not a valid game Id: " + id, null);
+        }
         Player playerOne = game.getPlayerOne();
         Player playerTwo = game.getPlayerTwo();
         ArrayList<Piece> pieces = playerOne.getPieces();
@@ -67,54 +75,83 @@ public class GameService {
         return gamePiecesList;
     }
 
-    public JsonObject joinGame(String id) {
+    /**
+     *
+     * @param id the id of the game being joined
+     * @return { gameId: <id>, playerId: <id>, pieceType: <type> }
+     * @throws InvalidGameIdException
+     * @throws SecondPlayerAlreadyJoinedException
+     */
+    public JsonObject joinGame(String id) throws InvalidGameIdException, SecondPlayerAlreadyJoinedException {
+
         Game game = gameHashMap.get(Integer.parseInt(id));
+
         JsonObject json = new JsonObject();
-        String pieceType = game.getPlayerOne().getPieceType();
-        Player playerTwo;
-        if (pieceType.equals("HOUND")) {
-            playerTwo = new Player("playerTwo", "HARE");
-        } else {
-            playerTwo = new Player("playerTwo", "HOUND");
+        try {
+            String pieceType = game.getPlayerOne().getPieceType();
+            Player playerTwo;
+            if (pieceType.equals("HOUND")) {
+                playerTwo = new Player("playerTwo", "HARE");
+            } else {
+                playerTwo = new Player("playerTwo", "HOUND");
+            }
+            if (game.getPlayerTwo() != null) {
+                throw new SecondPlayerAlreadyJoinedException("A second player already exists", null);
+            }
+            game.setPlayerTwo(playerTwo);
+
+            game.setCurrentState("TURN_HOUND");
+
+
+            json.addProperty("gameId", id);
+            json.addProperty("playerId", playerTwo.getPlayerId());
+            json.addProperty("pieceType", playerTwo.getPieceType());
+
+            return json;
+        } catch (NullPointerException ex) {
+            throw new InvalidGameIdException("Not a valid game Id: " + id, ex);
+
         }
-        game.setPlayerTwo(playerTwo);
-
-        game.setCurrentState("TURN_HOUND");
-
-
-        json.addProperty("gameId", id);
-        json.addProperty("playerId", playerTwo.getPlayerId());
-        json.addProperty("pieceType", playerTwo.getPieceType());
-
-        return json;
-
     }
 
-    public String getGameState(String id) {
-        return gameHashMap.get(Integer.parseInt(id)).getCurrentState();
-
+    /**
+     *
+     * @param id game id
+     * @return state of the game
+     * @throws InvalidGameIdException
+     */
+    public String getGameState(String id) throws InvalidGameIdException {
+        Game game = gameHashMap.get(Integer.parseInt(id));
+        if (game == null) {
+            throw new InvalidGameIdException("Not a valid game Id: " + id, null);
+        }
+        return game.getCurrentState();
     }
 
-    public JsonObject movePiece(JsonObject req) {
+    /**
+     *
+     * @param req the contents of the request
+     * @return { playerId: <id> }
+     * @throws InvalidGameIdException { reason: "INVALID_GAME_ID" }
+     * @throws InvalidPlayerIdException  { reason: "INVALID_PLAYER_ID" }
+     * @throws IncorrectTurnException  { reason: "INCORRECT_TURN" }
+     * @throws IllegalMoveException { reason: "ILLEGAL_MOVE" }
+     */
+    public JsonObject movePiece(JsonObject req) throws InvalidGameIdException, InvalidPlayerIdException, IncorrectTurnException, IllegalMoveException {
         JsonObject json = new JsonObject();
         Game game = gameHashMap.get(Integer.parseInt(req.get("gameId").getAsString()));
         if (game == null) {
-            json.addProperty("reason", "INVALID_GAME_ID");
-            System.out.println("Game was not found");
-            return json;
+            throw new InvalidGameIdException("Not a valid game Id: " + req.get("gameId").getAsString(), null);
         }
 
         String playerId = req.get("playerId").getAsString();
-        System.out.println("PlayerId: " + playerId);
+
         Player player;
         if (!game.getPlayerOne().getPlayerId().equals(playerId)) {
             if (!game.getPlayerTwo().getPlayerId().equals(playerId)) {
-                json.addProperty("reason", "INVALID_PLAYER_ID");
-                System.out.println("problem");
-                return json;
+                throw new InvalidPlayerIdException("Not a valid player Id: " + playerId, null);
             } else {
                 player = game.getPlayerTwo();
-                System.out.println("set here");
             }
         } else {
             player = game.getPlayerOne();
@@ -127,64 +164,71 @@ public class GameService {
             int fromY = req.get("fromY").getAsInt();
             int toX = req.get("toX").getAsInt();
             int toY = req.get("toY").getAsInt();
-            JsonObject res =  makeMove(player, fromX, fromY, toX, toY);
-            checkState(game);
+            JsonObject res = makeMove(player, fromX, fromY, toX, toY, game);
+            if (!res.has("reason")) {
+                checkState(game);
+            }
             return res;
         } else {
-            json.addProperty("reason", "INCORRECT_TURN");
-            return json;
+            throw new IncorrectTurnException("Incorrect turn", null);
         }
 
     }
 
-    private Player getHoundPlayer(Game game){
-        if(game.getPlayerOne().getPieceType().equals("HOUND")){
+    /**
+     *
+     * @param game The game to be used
+     * @return Return's the player object that is the hound
+     */
+    private Player getHoundPlayer(Game game) {
+        if (game.getPlayerOne().getPieceType().equals("HOUND")) {
             return game.getPlayerOne();
         } else {
             return game.getPlayerTwo();
         }
     }
 
+    /**
+     * Checks for win states a changes turns
+     * @param game The game we are analyzing
+     */
     private void checkState(Game game) {
         //Check for win conditions
         Graph board = game.getBoard();
         ArrayList<Piece> pieces = new ArrayList<Piece>();
 
         Player hound = getHoundPlayer(game);
-        for(Piece piece : hound.getPieces()) {
-            pieces.add(piece);
-        }
-        Collections.sort(pieces, new Comparator<Piece>() {
+        pieces = game.getPieces();
 
-            public int compare(Piece o1, Piece o2) {
-                if(Integer.compare(o1.getX(), o2.getX()) == 0){
-                    return Integer.compare(o1.getY(), o2.getY());
-                } else {
-                    return Integer.compare(o1.getX(), o2.getX());
-                }
-            }
-        });
+
         Player hare;
-        if(hound.getPlayerId().contains("One")){
-            pieces.add(game.getPlayerTwo().getPieces().get(0));
+        if (hound.getPlayerId().contains("One")) {
             hare = game.getPlayerTwo();
-            System.out.println("player two is hare");
         } else {
-            pieces.add(game.getPlayerOne().getPieces().get(0));
             hare = game.getPlayerOne();
-            System.out.println("player one is hare");
         }
 
+        //Check for stalling
+        HashMap<ArrayList<Piece>, Integer> stalling = game.getStalling();
+        if (stalling.containsKey(pieces)) {
+            stalling.put(pieces, stalling.get(pieces) + 1);
+            if (stalling.get(pieces) == 3) {
+                game.setCurrentState("WIN_HARE_BY_STALLING");
+                return;
+            }
+        } else {
+            stalling.put(pieces, 1);
+        }
 
         //Hounds win?
         ArrayList<Vertex> adjacents = board.getAdjacentVertices(new Vertex(hare.getPieces().get(0).getX(), hare.getPieces().get(0).getY()));
-        if(adjacents.size() == 4){
-            for(Piece piece : hound.getPieces()){
-                if(adjacents.contains(new Vertex(piece.getX(), piece.getY()))){
-                    if(adjacents.contains(new Vertex(piece.getX(), piece.getY()))){
-                        if(adjacents.contains(new Vertex(piece.getX(), piece.getY()))){
-                            game.setCurrentState("WIN_HOUND");
-                        }
+        if (adjacents.size() == 3) {
+            ArrayList<Piece> hounds = hound.getPieces();
+            if (adjacents.contains(new Vertex(hounds.get(0).getX(), hounds.get(0).getY()))) {
+                if (adjacents.contains(new Vertex(hounds.get(1).getX(), hounds.get(1).getY()))) {
+                    if (adjacents.contains(new Vertex(hounds.get(2).getX(), hounds.get(2).getY()))) {
+                        game.setCurrentState("WIN_HOUND");
+                        return;
                     }
                 }
             }
@@ -192,55 +236,68 @@ public class GameService {
         //Hare win?
         //Pick hound with the least x index
         Piece min = hound.getPieces().get(0);
-        for(Piece piece : hound.getPieces()){
-            if(piece.getX()<min.getX()){
+        for (Piece piece : hound.getPieces()) {
+            if (piece.getX() < min.getX()) {
                 min = piece;
             }
         }
-        if(hare.getPieces().get(0).getX() <= min.getX()){
+        if (hare.getPieces().get(0).getX() <= min.getX()) {
             game.setCurrentState("WIN_HARE");
+            return;
         }
 
-
-
-
         //Switch turn
-        if(game.getCurrentState().equals("TURN_HOUND")){
+        if (game.getCurrentState().equals("TURN_HOUND")) {
             game.setCurrentState("TURN_HARE");
         } else if (game.getCurrentState().equals("TURN_HARE")) {
             game.setCurrentState("TURN_HOUND");
         }
-        //Stalling?
     }
 
-    private JsonObject makeMove(Player player, int fromX, int fromY, int toX, int toY) {
+    /**
+     * Makes move if valid
+     * @param player player who made the move
+     * @param fromX
+     * @param fromY
+     * @param toX
+     * @param toY
+     * @param game the game being played
+     * @return
+     * @throws IllegalMoveException
+     */
+    private JsonObject makeMove(Player player, int fromX, int fromY, int toX, int toY, Game game) throws IllegalMoveException {
         JsonObject res = new JsonObject();
         ArrayList<Piece> pieces = player.getPieces();
         for (Piece piece : pieces) {
             if (piece.getX() == fromX && piece.getY() == fromY) {
-                System.out.println("this is the right piece");
+                //Player is hound or hare
                 if (piece.getType().equals("HOUND")) {
-                    if (((toX-piece.getX()) == 0 || (toX-piece.getX()) == 1) && ((toY-piece.getY() <=1) && (toY-piece.getY() >=-1))) { //is vaild move
-                        player.setPlayerId(player.getPlayerId() + "1");
-                        res.addProperty("playerId", player.getPlayerId());
-                        piece.setX(toX);
-                        piece.setY(toY);
+                    if (game.getBoard().getAdjacentVertices(new Vertex(piece.getX(), piece.getY())).contains(new Vertex(toX, toY))) {
+                        //Hounds can only move forward or stay in the same x coordinate
+                        if (toX >= piece.getX()) {
+                            if (!game.getPieces().contains(new Piece(piece.getType(), toX, toY))) { //Check if piece is in this place
+                                piece.setX(toX);
+                                piece.setY(toY);
 
-                        return res;
+                                res.addProperty("playerId", player.getPlayerId());
+                                return res;
+                            }
+                        }
                     }
-                } else if(piece.getType().equals("HARE")){
-                    if(((toX-piece.getX()) <=1 && (toX-piece.getX() >=-1) && (toY-piece.getY() <=1 && (toY-piece.getY() >=-1)))){
-                        player.setPlayerId(player.getPlayerId() + "1");
-                        res.addProperty("playerId", player.getPlayerId());
-                        piece.setX(toX);
-                        piece.setY(toY);
-                        return res;
+                } else if (piece.getType().equals("HARE")) {
+                    if (game.getBoard().getAdjacentVertices(new Vertex(piece.getX(), piece.getY())).contains(new Vertex(toX, toY))) {
+                        if (!game.getPieces().contains(new Piece(piece.getType(), toX, toY))) {
+                            res.addProperty("playerId", player.getPlayerId());
+                            piece.setX(toX);
+                            piece.setY(toY);
+                            return res;
+                        }
                     }
                 }
             }
         }
-        res.addProperty("reason", "ILLEGAL_MOVE");
-        return res;
+        throw new IllegalMoveException("Illegal move made", null);
+
     }
 
 
@@ -250,5 +307,31 @@ public class GameService {
         }
     }
 
+    public static class InvalidGameIdException extends Exception {
+        public InvalidGameIdException(String message, Throwable cause) {
+            super(message, cause);
+        }
+    }
 
+    public static class SecondPlayerAlreadyJoinedException extends Exception {
+        public SecondPlayerAlreadyJoinedException(String message, Throwable cause) {
+            super(message, cause);
+        }
+    }
+
+    public static class InvalidPlayerIdException extends Exception{
+        public InvalidPlayerIdException(String message, Throwable cause){
+            super(message, cause);
+        }
+    }
+    public static class IncorrectTurnException extends Exception{
+        public IncorrectTurnException(String message, Throwable cause){
+            super(message, cause);
+        }
+    }
+    public static class IllegalMoveException extends Exception{
+        public IllegalMoveException(String message, Throwable cause){
+            super(message, cause);
+        }
+    }
 }

@@ -31,7 +31,6 @@ public class Bootstrap {
                     Paths.get(".").toAbsolutePath().normalize());
             System.exit(1);
         }
-        System.out.println("hello");
         //Specify the IP address and Port at which the server should be run
         ipAddress(IP_ADDRESS);
         port(PORT);

@@ -32,8 +32,6 @@ public class GameController {
     private void setupEndpoints() {
         //Create a new TODO
         post(API_CONTEXT + "/games", "application/json", (request, response) -> {
-//            try {
-            //do stuff
             JsonParser p = new JsonParser();
             JsonObject req = p.parse(request.body()).getAsJsonObject();
 
@@ -44,39 +42,51 @@ public class GameController {
             json.addProperty("playerId", game.getPlayerOne().getPlayerId());
             json.addProperty("pieceType", game.getPlayerOne().getPieceType());
             return json;
-//            }
-//            } catch (GameService.GameServiceException ex) {
-//                logger.error("Failed to create new entry");
-//                response.status(500);
-//            }
-
         }, new JsonTransformer());
 
         //Join Game
         put(API_CONTEXT + "/games/:id", "application/json", (request, response) -> {
-            JsonObject json = gameService.joinGame(request.params(":id"));
-            response.status(200);
-
-            return json;
-
+            try {
+                JsonObject json = gameService.joinGame(request.params(":id"));
+                response.status(200);
+                return json;
+            } catch (GameService.InvalidGameIdException ex) {
+                response.status(404);
+                return Collections.EMPTY_MAP;
+            } catch (GameService.SecondPlayerAlreadyJoinedException ex) {
+                response.status(410);
+                return Collections.EMPTY_MAP;
+            }
 
         }, new JsonTransformer());
 
 
         //Fetch State
         get(API_CONTEXT + "/games/:id/state", "application/json", (request, response) -> {
-
-            String gameState = gameService.getGameState(request.params(":id"));
-            JsonObject json = new JsonObject();
-            json.addProperty("state", gameState);
-            return json;
+            try {
+                String gameState = gameService.getGameState(request.params(":id"));
+                JsonObject json = new JsonObject();
+                json.addProperty("state", gameState);
+                response.status(200);
+                return json;
+            } catch (GameService.InvalidGameIdException ex) {
+                response.status(404);
+                return Collections.EMPTY_MAP;
+            }
         }, new JsonTransformer());
 
         //Fetch Board
         get(API_CONTEXT + "/games/:id/board", "application/json", (request, response) -> {
+            try {
+                JsonArray pieces = gameService.getGameBoard(request.params(":id"));
+                response.status(200);
+                return pieces;
 
-            JsonArray pieces = gameService.getGameBoard(request.params(":id"));
-            return pieces;
+            } catch (GameService.InvalidGameIdException ex) {
+                response.status(404);
+                return Collections.EMPTY_MAP;
+            }
+
         }, new JsonTransformer());
 
         //Move a piece
@@ -85,25 +95,34 @@ public class GameController {
             JsonObject req = p.parse(request.body()).getAsJsonObject();
 
             req.addProperty("gameId", request.params(":id"));
-            System.out.println("hi");
-            JsonObject res = gameService.movePiece(req);
-            System.out.println("halp");
-            if(res.has("playerId")){
-                response.status(200);
-                System.out.println("True");
-                return res;
-            } else {
-                String error = res.get("reason").toString();
-                if(error.equals("INVALID_GAME_ID") || error.equals("INVALID_PLAYER_ID")){
-                    response.status(404);
-                    System.out.println("no good");
-                } else if(error.equals("INCORRECT_TURN") || error.equals("ILLEGAL_MOVE")){
-                    response.status(422);
-                    System.out.println("bad");
-                }
 
+            try {
+                JsonObject res = gameService.movePiece(req);
+                response.status(200);
+                return res;
+            } catch (GameService.InvalidGameIdException ex) {
+                JsonObject res = new JsonObject();
+                response.status(404);
+                res.addProperty("reason", "INVALID_GAME_ID");
+                return res;
+            } catch (GameService.InvalidPlayerIdException ex) {
+                JsonObject res = new JsonObject();
+                response.status(404);
+                res.addProperty("reason", "INVALID_PLAYER_ID");
+                return res;
+            } catch (GameService.IncorrectTurnException ex) {
+                JsonObject res = new JsonObject();
+                response.status(422);
+                res.addProperty("reason", "INCORRECT_TURN");
+                return res;
+            } catch (GameService.IllegalMoveException ex) {
+                JsonObject res = new JsonObject();
+                response.status(422);
+                res.addProperty("reason", "ILLEGAL_MOVE");
                 return res;
             }
+
+
         }, new JsonTransformer());
     }
 

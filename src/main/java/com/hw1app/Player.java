@@ -32,7 +32,6 @@ public class Player {
     public Player(String playerId, String pieceType) {
         this.playerId = playerId;
         this.pieceType = pieceType;
-        System.out.println("PieceType " + pieceType);
         this.pieces = new ArrayList<Piece>();
         if (this.pieceType.equals("HOUND")) {
             pieces.add(new Piece("HOUND", 1, 0));

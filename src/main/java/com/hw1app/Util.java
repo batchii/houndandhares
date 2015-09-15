@@ -43,6 +43,8 @@ public class Util {
         board.addEdge(new Vertex(3, 1), new Vertex(4, 1), 0);
         board.addEdge(new Vertex(3, 1), new Vertex(3, 2), 0);
 
+        board.addEdge(new Vertex(3, 2), new Vertex(4,1), 0);
+
         return board;
     }
 
