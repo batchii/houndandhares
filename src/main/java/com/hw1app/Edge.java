@@ -4,8 +4,6 @@ package com.hw1app;
  * Created by Satshabad on Dec 22, 2011, https://github.com/Satshabad/Simple-Graph-Implementation
  *
  * */
-import java.util.ArrayList;
-
 
 public class Edge<V> {
 

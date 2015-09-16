@@ -2,11 +2,10 @@ package com.hw1app;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
-import javax.activation.DataSource;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
 
 /**
  * Created by atab7_000 on 9/6/2015.

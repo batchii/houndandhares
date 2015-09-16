@@ -56,52 +56,6 @@ public class Graph<V> {
 
     }
 
-    public boolean addArc(V source, V end, int weight) {
-        if (!directed) {
-            return false;
-        }
-
-        if (!adjacencyList.containsKey(source)) {
-            ArrayList<Edge<V>> tempList = new ArrayList<Edge<V>>();
-            tempList.add(new Edge<V>(end, weight));
-            add(source, tempList);
-            return true;
-        }
-
-        if (!adjacencyList.containsKey(end)) {
-            ArrayList<Edge<V>> tempList = new ArrayList<Edge<V>>();
-            add(end, tempList);
-        }
-
-
-        adjacencyList.get(source).add(new Edge<V>(end, weight));
-        return true;
-    }
-
-    public boolean addEdge(V vertexOne, V vertexTwo, int weight) {
-        if (directed) {
-            return false;
-        }
-
-        if (!adjacencyList.containsKey(vertexOne)) {
-            ArrayList<Edge<V>> tempList = new ArrayList<Edge<V>>();
-            tempList.add(new Edge<V>(vertexTwo, weight));
-            add(vertexOne, tempList);
-            return true;
-        }
-
-        if (!adjacencyList.containsKey(vertexTwo)) {
-            ArrayList<Edge<V>> tempList = new ArrayList<Edge<V>>();
-            tempList.add(new Edge<V>(vertexOne, weight));
-            add(vertexTwo, tempList);
-            return true;
-        }
-
-        adjacencyList.get(vertexOne).add(new Edge<V>(vertexTwo, weight));
-        adjacencyList.get(vertexTwo).add(new Edge<V>(vertexOne, weight));
-        return true;
-    }
-
     /**
      * This method returns a list of all adjacent vertices of the give vertex without weight
      *

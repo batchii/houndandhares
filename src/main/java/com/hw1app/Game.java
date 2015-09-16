@@ -10,6 +10,7 @@ import java.util.stream.Collectors;
  * Created by atab7_000 on 9/8/2015.
  */
 public class Game {
+
     private int gameId;
 
     private Player playerOne;
@@ -18,18 +19,16 @@ public class Game {
 
     private String currentState;
 
+    public HashMap<ArrayList<Piece>, Integer> stalling;
+
+    private Graph<Vertex> board;
+
     public Graph<Vertex> getBoard() {
         return board;
     }
 
-    public HashMap<ArrayList<Piece>, Integer> stalling;
-
     public HashMap<ArrayList<Piece>, Integer> getStalling() {
         return stalling;
-    }
-
-    public void setStalling(HashMap<ArrayList<Piece>, Integer> stalling) {
-        this.stalling = stalling;
     }
 
     public ArrayList<Piece> getPieces(){
@@ -60,13 +59,6 @@ public class Game {
         return pieces;
     }
 
-    public void setBoard(Graph<Vertex> board) {
-        this.board = board;
-    }
-
-    private Graph<Vertex> board;
-
-
     public Game(int gameId, Player playerOne, Graph<Vertex> board) {
         this.gameId = gameId;
         this.playerOne = playerOne;
@@ -83,13 +75,8 @@ public class Game {
         this.currentState = currentState;
     }
 
-
     public int getGameId() {
         return gameId;
-    }
-
-    public void setGameId(int gameId) {
-        this.gameId = gameId;
     }
 
     public Player getPlayerOne() {
